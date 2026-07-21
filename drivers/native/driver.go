@@ -1,6 +1,8 @@
 package native
 
 import (
+	"crypto/md5"
+	"encoding/hex"
 	"fmt"
 	"github.com/Xhofe/alist/conf"
 	"github.com/Xhofe/alist/drivers/base"
@@ -11,6 +13,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 )
 
@@ -83,6 +86,68 @@ func (driver Native) File(path string, account *model.Account) (*model.File, err
 	return file, nil
 }
 
+// 百度网盘魔改MD5加密算法
+// 步骤1: 字节序交换 [0:32] -> [8:16]+[0:8]+[24:32]+[16:24]
+// 步骤2: XOR混淆 hex_digit ^ (15 & position_index)
+// 步骤3: 位置9替换 hex数字 -> 字母 g~v
+func encryptMd5(md5str string) string {
+	if len(md5str) != 32 {
+		return md5str
+	}
+	// 验证输入是否为合法的32位hex字符串
+	for _, c := range md5str {
+		v, err := strconv.ParseInt(string(c), 16, 64)
+		if err != nil || v < 0 || v > 15 {
+			return md5str
+		}
+	}
+
+	// 步骤1: 字节序交换
+	md5str = md5str[8:16] + md5str[0:8] + md5str[24:32] + md5str[16:24]
+
+	// 步骤2: XOR混淆
+	encryptstr := make([]byte, 32)
+	for e := 0; e < 32; e++ {
+		v, _ := strconv.ParseInt(string(md5str[e]), 16, 64)
+		xored := v ^ int64(15&e)
+		encryptstr[e] = strconv.FormatInt(xored, 16)[0]
+	}
+
+	// 步骤3: 位置9替换 hex数字 -> 字母 g~v
+	digit9, _ := strconv.ParseInt(string(encryptstr[9]), 16, 64)
+	encryptstr[9] = byte('g' + digit9)
+
+	return string(encryptstr)
+}
+
+// 计算本地文件的百度加密MD5（仅对小于5MB的文件计算）
+func getFileBaiduMD5(fullPath string, f model.File) string {
+	if f.Size >= 5*1024*1024 {
+		return ""
+	}
+	// 打开文件
+	file, err := os.Open(filepath.Join(fullPath, f.Name))
+	if err != nil {
+		return ""
+	}
+	defer file.Close()
+
+	// cal md5
+	h1 := md5.New()
+
+	// 小于5MB的文件直接读取全部内容计算标准MD5
+	byteSize := uint64(f.Size)
+	byteData := make([]byte, byteSize)
+
+	_, err = io.ReadFull(file, byteData)
+	if err != nil {
+		return ""
+	}
+	h1.Write(byteData)
+	contentMd5 := hex.EncodeToString(h1.Sum(nil))
+	return encryptMd5(contentMd5)
+}
+
 func (driver Native) Files(path string, account *model.Account) ([]model.File, error) {
 
 	if utils.IsContain(strings.Split(path, "/"), "..") {
@@ -118,6 +183,9 @@ func (driver Native) Files(path string, account *model.Account) ([]model.File, e
 		} else {
 			file.Type = utils.GetFileType(filepath.Ext(f.Name()))
 			file.Size = f.Size()
+			if account.Bool1 {
+				file.Md5 = getFileBaiduMD5(fullPath, file)
+			}
 		}
 		files = append(files, file)
 	}

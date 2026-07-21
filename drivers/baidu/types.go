@@ -30,7 +30,7 @@ type File struct {
 	//Pl             int    `json:"pl"`
 	//LocalCtime     int    `json:"local_ctime"`
 	ServerFilename string `json:"server_filename"`
-	//Md5            string `json:"md5"`
+	Md5            string `json:"md5"`
 	//OwnerId        int    `json:"owner_id"`
 	//Unlist int `json:"unlist"`
 	Isdir int `json:"isdir"`

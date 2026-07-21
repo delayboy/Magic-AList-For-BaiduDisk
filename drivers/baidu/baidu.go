@@ -155,6 +155,11 @@ func (driver Baidu) GetFiles(dir string, account *model.Account) ([]model.File, 
 		if len(resp.List) == 0 {
 			break
 		}
+		/*jsonStr, err := jsoniter.MarshalToString(resp)
+		if err != nil {
+			fmt.Println("序列化失败:", err)
+			fmt.Println("JSON字符串序列化结果:", jsonStr)
+		}*/
 		for _, f := range resp.List {
 			file := model.File{
 				Id:        strconv.FormatInt(f.FsId, 10),
@@ -164,7 +169,11 @@ func (driver Baidu) GetFiles(dir string, account *model.Account) ([]model.File, 
 				UpdatedAt: getTime(f.ServerMtime),
 				Thumbnail: f.Thumbs.Url3,
 				Url:       f.Path,
+				Md5:       f.Md5,
 			}
+			/*if file.Size < 1024*1024 && file.Size > 2 {
+				file.SizeStr = f.Md5
+			}*/
 			if f.Isdir == 1 {
 				file.Type = conf.FOLDER
 			} else {

@@ -37,6 +37,7 @@ func (operator *SyncOperator) statisticFilesNum(nativeRootPath string) int64 {
 		}
 		nowFile := Queue[0]
 		nowFileNativePath := utils.Join(nativeRootPath, nowFile.Url)
+		operator.accountNative.Bool1 = false
 		nativeFilesMap := operator.GetNativeFilesMap(nowFileNativePath)
 		for _, file := range nativeFilesMap {
 			file.Url = utils.Join(nowFile.Url, file.Name)

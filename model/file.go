@@ -18,6 +18,7 @@ type File struct {
 	Url       string     `json:"url"`
 	SizeStr   string     `json:"size_str"`
 	TimeStr   string     `json:"time_str"`
+	Md5       string     `json:"md5"`
 }
 
 func SortFiles(files []File, account *Account) {

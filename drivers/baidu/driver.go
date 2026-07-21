@@ -305,10 +305,10 @@ func (driver Baidu) Upload(file *model.FileStream, account *model.Account) error
 	if err != nil {
 		return err
 	}
-	var Default uint64 = 4 * 1024 * 1024
+	var Default uint64 = 5 * 1024 * 1024
 	defaultByteData := make([]byte, Default)
 	count := int(math.Ceil(float64(file.GetSize()) / float64(Default)))
-	var SliceSize uint64 = 256 * 1024
+	var SliceSize uint64 = Default // 256 * 1024
 	// cal md5
 	h1 := md5.New()
 	h2 := md5.New()

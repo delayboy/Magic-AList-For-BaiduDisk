@@ -206,6 +206,7 @@ func (operator *SyncOperator) listSync(nativeRootPath string, baiduRootPath stri
 			break
 		}
 		nowFileNativePath := utils.Join(nativeRootPath, nowFile.Url)
+		operator.accountNative.Bool1 = true
 		nativeFilesMap := operator.GetNativeFilesMap(nowFileNativePath)
 		nowFileAimPath := utils.Join(baiduRootPath, nowFile.Url)
 		baiduFileMap, hasDir := operator.GetBaiduFilesMap(nowFileAimPath)
@@ -238,8 +239,14 @@ func (operator *SyncOperator) listSync(nativeRootPath string, baiduRootPath stri
 					operator.Queue = append(operator.Queue, file)
 
 				} else {
-					//复制文件大小不一样的文件,使用go关键字异步执行
-					if baiduFile.Size != file.Size {
+					// 小于5MB的文件使用md5同步，大于5MB的文件使用size同步
+					needUpdate := false
+					if file.Md5 != "" {
+						needUpdate = file.Md5 != baiduFile.Md5
+					} else {
+						needUpdate = baiduFile.Size != file.Size
+					}
+					if needUpdate {
 						operator.diffSizeCallBack(nativeRootPath, baiduRootPath, file, baiduFile, mode)
 					} else {
 						operator.sameSizeCallBack(nativeRootPath, baiduRootPath, file, baiduFile, mode)
